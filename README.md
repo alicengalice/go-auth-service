@@ -1,4 +1,4 @@
-﻿# go-auth-service
+﻿# Go Authentication Service
 
 A lightweight Go authentication service that validates admin credentials and issues JWT tokens.
 
@@ -48,3 +48,4 @@ Expected startup log: `Starting auth service on : 8081`
 - Add key rotation and JWKS
 - Add middleware-protected routes for internal verification
 - Add unit/integration tests
+
