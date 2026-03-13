@@ -10,6 +10,23 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// corsMiddleware adds CORS headers to allow browser requests from the frontend
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Handle preflight OPTIONS request
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func main() {
 	// Load .env file
 	err := godotenv.Load()
@@ -24,11 +41,11 @@ func main() {
 	}
 
 	// Setup routes
-	http.HandleFunc("/login", handlers.Login)
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/login", corsMiddleware(handlers.Login))
+	http.HandleFunc("/health", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Auth service is running")
-	})
+	}))
 
 	// Start server
 	fmt.Printf("Starting auth service on : %s\n", port)

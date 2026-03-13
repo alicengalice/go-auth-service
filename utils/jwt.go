@@ -18,9 +18,10 @@ func GetJWTSecret() []byte {
 }
 
 // GenerateToken - creates a JWT token
-func GenerateToken(usernam string) (string, error) {
+func GenerateToken(username string) (string, error) {
 	claims := jwt.MapClaims{
-		"username": usernam,
+		"sub":      username,
+		"username": username,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(), // expires in 24 hours
 	}
 
