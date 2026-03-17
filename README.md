@@ -11,7 +11,7 @@ This service is framework-minimal (`net/http`) and designed to be easy to unders
 - **Observability**: Built-in `/health` check for container orchestration.
 
 ## 🛠 Requirements
-- **Go**: 1.22+ (refer to `go.mod`)
+- **Go**: 1.25.0 (refer to `go.mod`)
 - **Environment**: A `.env` file containing `JWT_SECRET` and `PORT`.
 
 ## 💻 Run Locally
@@ -48,25 +48,32 @@ go run main.go
 
 This project utilises a **Stateless JWT** architecture. Instead of a monolithic session-store, it follows the **"Sign-at-the-Gate, Verify-at-the-Resource"** pattern.
 
-### The Handshake Protocol
-1. **Authentication (Go Auth Service)**: Validates credentials and signs a JWT using a **Shared Secret Key** (HS256).
-2. **Persistence (Frontend)**: React-admin stores the token and uses an **Axios Interceptor** to inject it into the `Authorization` header.
-3. **Authorisation (Spring Boot Backend)**: The Java backend acts as an **OAuth2 Resource Server**. It validates the signature locally using the same Shared Secret; no cross-service call to Go is required during the request lifecycle.
+### Token Trust Flow
+1. **Authentication (Go Auth Service)**: Validates credentials and signs a JWT using a shared secret key (HS256).
+2. **Persistence (Frontend)**: React-admin stores the token and sends it in the `Authorization` header
+3. **Authorisation (Spring Boot Backend)**: Spring validates the JWT signature locally using the same shared secret. No per-request call to Go is required.
 
 ### Technical Flow
 ```mermaid
 sequenceDiagram
-    participant FE as Frontend (React)
+    participant U as User (Browser)
+    participant FE as Frontend (React Admin)
     participant GO as Go Auth Service
-    participant SB as Spring Boot Backend
+    participant SB as Spring Boot API
 
-    FE->>GO: POST /login (Credentials)
-    Note over GO: Validate & Sign JWT
-    GO-->>FE: 200 OK (JWT Token)
-    
-    FE->>SB: GET /api/data (Headers: Bearer <Token>)
-    Note over SB: Validate Signature locally
-    SB-->>FE: 200 OK (Protected Resource)
+    U->>FE: Enter admin credentials
+    FE->>GO: POST /login
+    GO-->>FE: 200 { token }
+
+    Note over FE: Store token (localStorage)
+
+    FE->>SB: GET /api/categories + Bearer token
+    Note over SB: Validate JWT signature locally (HS256 + shared secret)
+    SB-->>FE: 200 protected data
+
+    FE->>SB: GET /api/categories + invalid/expired token
+    SB-->>FE: 401 Unauthorized
+    FE-->>U: Redirect to login
 ```
 
 ### Components & Responsibilities
