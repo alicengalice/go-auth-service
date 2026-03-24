@@ -4,6 +4,9 @@ A lightweight Go authentication service that validates admin credentials and iss
 
 This service is framework-minimal (`net/http`) and designed to be easy to understand, test, and integrate with multiple backend apps (for example Spring Boot APIs). 
 
+- Backend: https://github.com/alicengalice/expense-wise-backend
+- Frontend: https://github.com/alicengalice/expense-wise-frontend
+
 ## 🚀 Features
 - **Stateless Auth**: Issues HS256 JWT tokens.
 - **Lightweight**: Minimal dependency footprint.
