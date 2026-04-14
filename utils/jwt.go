@@ -25,14 +25,14 @@ func GenerateToken(username string) (string, error) {
 		"exp":      time.Now().Add(24 * time.Hour).Unix(), // expires in 24 hours
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(GetJWTSecret())
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims) // takes claimes (map) and SigningMethodHS256 to convert to a JSON string and then Based64 encodes them
+	tokenString, err := token.SignedString(GetJWTSecret())     // looks at the secret key and takes Header + "." + Payload and runs it through the HMAC-SHA256 algorithm using the secret key
 
 	if err != nil {
 		return "", err
 	}
 
-	return tokenString, nil
+	return tokenString, nil // returns the generated the string
 }
 
 // ValidateToken - verifies JWT signature
