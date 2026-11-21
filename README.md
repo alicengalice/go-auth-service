@@ -23,7 +23,7 @@ This service is framework-minimal (`net/http`) and designed to be easy to unders
 go mod tidy
 
 # Run the service
-go run main.go
+go run .
 ```
 *Expected output: `Starting auth service on :8081`*
 
@@ -94,3 +94,6 @@ sequenceDiagram
 - [ ] **Authorisation**: Add Role-Based Access Control (RBAC) claims to JWT.
 - [ ] **Security+**: Implement Refresh Token flow and Key Rotation.
 - [ ] **Testing**: Add unit tests for JWT utility and handler logic.
+
+## Improvements
+:white_check_mark: Added Go auth service Docker containerization with a multi-stage build and .dockerignore optimization for faster, cleaner image builds (4th May 2026)
