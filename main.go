@@ -5,7 +5,6 @@ import (
 	"go-auth-service/handlers"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -34,14 +33,15 @@ func main() {
 		log.Println("Warning: .env file not found, using system environment variables")
 	}
 
-	// Get port from environment (default to 8081)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8081"
+	// Load and validate all settings once; stop immediately if anything is missing
+	cfg, err := LoadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
+	port := cfg.Port
 
 	// Setup routes
-	http.HandleFunc("/login", corsMiddleware(handlers.Login))
+	http.HandleFunc("/login", corsMiddleware(handlers.Login(cfg.Auth)))
 	http.HandleFunc("/health", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Auth service is running")

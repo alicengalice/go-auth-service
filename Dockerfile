@@ -6,7 +6,7 @@ COPY go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o auth-service main.go
+RUN go build -o auth-service .
 
 FROM alpine:3.20
 WORKDIR /app

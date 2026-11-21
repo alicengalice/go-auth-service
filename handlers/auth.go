@@ -1,65 +1,67 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"go-auth-service/models"
 	"go-auth-service/utils"
 	"net/http"
-	"os"
 )
 
-// GetAdminCredentials retrievees admin credentials from environment
-func GetAdminCredentials() (string, string) {
-	username := os.Getenv("ADMIN_USERNAME")
-	password := os.Getenv("ADMIN_PASSWORD")
-
-	if username == "" || password == "" {
-		panic("ADMIN_USERNAME or ADMIN_PASSWORD environment variable is not set")
-	}
-
-	return username, password
+// AuthConfig holds the admin credentials and token settings, validated at startup.
+type AuthConfig struct {
+	AdminUsername string
+	AdminPassword string
+	Token         utils.TokenConfig
 }
 
-// Login handles POST /login
-func Login(w http.ResponseWriter, r *http.Request) {
-	// Only accept POST
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed. POST method only", http.StatusMethodNotAllowed)
-		return
+// constantTimeEqual compares two strings without leaking, through timing,
+// how many leading characters matched. Hashing first makes both inputs
+// the same length, because subtle.ConstantTimeCompare returns early on a length mismatch.
+func constantTimeEqual(a, b string) bool {
+	ha := sha256.Sum256([]byte(a))
+	hb := sha256.Sum256([]byte(b))
+	return subtle.ConstantTimeCompare(ha[:], hb[:]) == 1
+}
+
+// Login returns the handler for POST /login.
+func Login(cfg AuthConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Only accept POST
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed. POST method only", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Parse JSON request body
+		var req models.LoginRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		// Check both fields every time (no short-circuit), so the response
+		// time doesn't reveal whether the username was right.
+		userOK := constantTimeEqual(req.Username, cfg.AdminUsername)
+		passOK := constantTimeEqual(req.Password, cfg.AdminPassword)
+		if !(userOK && passOK) {
+			writeJSON(w, http.StatusUnauthorized, models.LoginResponse{Error: "Invalid credentials"})
+			return
+		}
+
+		token, err := utils.GenerateToken(cfg.Token, cfg.AdminUsername)
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
+		writeJSON(w, http.StatusOK, models.LoginResponse{Token: token})
 	}
+}
 
-	// Parse JSON request body
-	var req models.LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Get admin credentials from environment
-	adminUsername, adminPassword := GetAdminCredentials()
-
-	// Validate credentials
-	if req.Username != adminUsername || req.Password != adminPassword {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(models.LoginResponse{
-			Error: "Invalid credentials",
-		})
-		return
-	}
-
-	// Generate JWT token
-	token, err := utils.GenerateToken(req.Username)
-	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-		return
-	}
-
-	// Return token
+func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(models.LoginResponse{
-		Token: token,
-	})
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(body)
 }
