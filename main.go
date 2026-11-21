@@ -48,7 +48,7 @@ func main() {
 	}))
 
 	// Start server
-	fmt.Printf("Starting auth service on : %s\n", port)
+	fmt.Printf("Starting auth service on :%s\n", port)
 	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)
